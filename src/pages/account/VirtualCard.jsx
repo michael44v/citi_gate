@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../../api/axios';
 import VirtualCardUI from '../../components/cards/VirtualCardUI';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import toast from 'react-hot-toast';
-import { Plus, CreditCard, ShieldCheck, X } from 'lucide-react';
+import { Plus, CreditCard, ShieldCheck, X, DollarSign } from 'lucide-react';
 
 const VirtualCardPage = () => {
+  const navigate = useNavigate();
   const [cards, setCards] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -101,9 +103,14 @@ const VirtualCardPage = () => {
           <h1 className="text-3xl font-bold text-chase-navy"> Cards</h1>
           <p className="text-gray-500">Enter and manage your cards for secure online payments</p>
         </div>
-        <Button onClick={() => setShowAddModal(true)} className="flex items-center gap-2">
-          <Plus size={20} /> Add Card
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button variant="secondary" onClick={() => navigate('/account/deposit')} className="flex items-center gap-2">
+            <DollarSign size={18} /> Add Funds
+          </Button>
+          <Button onClick={() => setShowAddModal(true)} className="flex items-center gap-2">
+            <Plus size={20} /> Add Card
+          </Button>
+        </div>
       </div>
 
       {cards.length === 0 ? (

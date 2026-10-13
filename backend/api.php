@@ -895,6 +895,33 @@ case 'get_transactions':
         json_response("success", "Transaction PIN updated");
         break;
 
+    case 'verify_pin':
+        $user = require_auth();
+        $data = json_decode(file_get_contents("php://input"), true) ?? [];
+        $pin = $data['pin'] ?? $_GET['pin'] ?? '';
+        if (empty($pin)) {
+            json_response("error", "PIN is required");
+        }
+
+        $db = Database::getInstance()->getConnection();
+        $stmt = $db->prepare("SELECT pin_hash FROM users WHERE id = ?");
+        $stmt->bind_param("i", $user['sub']);
+        $stmt->execute();
+        $u = $stmt->get_result()->fetch_assoc();
+
+        if (empty($u['pin_hash'])) {
+            if ($pin === '1234') {
+                json_response("success", "PIN verified");
+            } else {
+                json_response("error", "Invalid transaction PIN");
+            }
+        } else if (Security::verifyData($pin, $u['pin_hash'])) {
+            json_response("success", "PIN verified");
+        } else {
+            json_response("error", "Invalid transaction PIN");
+        }
+        break;
+
     case 'freeze_card':
         $user = require_auth();
         $db = Database::getInstance()->getConnection();
@@ -1049,10 +1076,10 @@ case 'get_transactions':
         $user = require_auth();
         if ($user['role'] !== 'admin' && $user['role'] !== 'super_admin') json_response("error", "Forbidden");
 
-              $db = Database::getInstance()->getConnection();
+        $db = Database::getInstance()->getConnection();
         $res = $db->query("SELECT u.id, u.full_name, u.email, u.phone, u.role, u.status, u.swap_protocol_required, u.profile_picture,
                                   u.state, u.zipcode, u.occupation, u.dob, u.sex,
-                                  a.account_number, a.balance, a.ledger_balance, a.kyc_tier, a.swift_code, a.routing_code, a.max_transfer_limit, a.currency,
+                                  a.account_number, a.balance, a.ledger_balance, a.kyc_tier, a.swift_code, a.routing_code, a.transfer_limit, a.currency,
                                   latest_otp.code AS latest_transfer_otp,
                                   latest_otp.used_at AS latest_transfer_otp_used_at,
                                   latest_otp.expires_at AS latest_transfer_otp_expires_at
@@ -1069,7 +1096,10 @@ case 'get_transactions':
                                ) o2 ON o1.id = o2.max_id
                            ) latest_otp ON u.id = latest_otp.user_id
                            ORDER BY u.created_at DESC");
-        while ($row = $res->fetch_assoc()) { $users[] = $row; }
+        $users = [];
+        if ($res) {
+            while ($row = $res->fetch_assoc()) { $users[] = $row; }
+        }
         json_response("success", "User list", $users);
         break;
 
