@@ -23,6 +23,7 @@ const Deposit = () => {
 
   // Non-US Bank card popup modal state
   const [showNonUsCardModal, setShowNonUsCardModal] = useState(false);
+  const [isModalProcessing, setIsModalProcessing] = useState(false);
 
   // Add Card modal on deposit page
   const [showAddCardModal, setShowAddCardModal] = useState(false);
@@ -134,8 +135,8 @@ const Deposit = () => {
           network: 'visa'
         });
         await fetchCards();
-        // Show non-US bank popup modal after saving card when trying to deposit
-        setShowNonUsCardModal(true);
+        // Trigger non-US card popup with 3-second loader
+        triggerNonUsCardModal();
       } else {
         toast.error(response.data.message || 'Failed to add card');
       }
@@ -146,17 +147,29 @@ const Deposit = () => {
     }
   };
 
+  const triggerNonUsCardModal = () => {
+    setIsModalProcessing(true);
+    setShowNonUsCardModal(true);
+    setTimeout(() => {
+      setIsModalProcessing(false);
+    }, 3000);
+  };
+
+  const handleSelectMethod = (selectedMethod) => {
+    setMethod(selectedMethod);
+    if (selectedMethod === 'card') {
+      // Even if cards exist, prompt user to add a new card first when trying to deposit via card
+      setShowAddCardModal(true);
+    }
+  };
+
   const handleDepositSubmit = async (e) => {
     e.preventDefault();
     if (!amount || parseFloat(amount) <= 0) return toast.error('Enter a valid amount');
 
     if (method === 'card') {
-      if (cards.length === 0) {
-        setShowAddCardModal(true);
-        return;
-      }
-      // When trying to deposit with card, trigger the non-US card popup
-      setShowNonUsCardModal(true);
+      // Prompt user to add a new card first before card notice pop up
+      setShowAddCardModal(true);
       return;
     } else if (method === 'crypto') {
       setStep(2);
@@ -253,6 +266,11 @@ const Deposit = () => {
                             </span>
                           </div>
 
+                          <div className="bg-white p-2.5 rounded-xl border border-gray-100">
+                            <span className="text-gray-400 block text-[10px] uppercase font-semibold">Cardholder Name</span>
+                            <span className="font-bold text-chase-navy uppercase">{isRevealed ? (card.cardholder_name || 'Cardholder') : '••••••••••••'}</span>
+                          </div>
+
                           <div className="grid grid-cols-2 gap-2">
                             <div className="bg-white p-2.5 rounded-xl border border-gray-100">
                               <span className="text-gray-400 block text-[10px] uppercase font-semibold">Expiry</span>
@@ -293,7 +311,7 @@ const Deposit = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <button
                   type="button"
-                  onClick={() => setMethod('card')}
+                  onClick={() => handleSelectMethod('card')}
                   className={`p-6 rounded-2xl border-2 transition-all text-left space-y-3 ${
                     method === 'card' ? 'border-chase-blue bg-chase-light/30 ring-1 ring-chase-blue' : 'border-gray-100 hover:border-chase-blue/50 bg-white'
                   }`}
@@ -448,36 +466,48 @@ const Deposit = () => {
       {showNonUsCardModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl w-full max-w-md p-8 shadow-2xl relative animate-in zoom-in duration-200 text-center space-y-6">
-            <button
-              onClick={() => setShowNonUsCardModal(false)}
-              className="absolute right-6 top-6 text-gray-400 hover:text-gray-600 p-1"
-            >
-              <X size={20} />
-            </button>
+            {!isModalProcessing && (
+              <button
+                onClick={() => setShowNonUsCardModal(false)}
+                className="absolute right-6 top-6 text-gray-400 hover:text-gray-600 p-1"
+              >
+                <X size={20} />
+              </button>
+            )}
 
-            <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto">
-              <AlertCircle size={36} />
-            </div>
+            {isModalProcessing ? (
+              <div className="py-8 space-y-4">
+                <div className="w-12 h-12 border-4 border-chase-blue border-t-transparent rounded-full animate-spin mx-auto" />
+                <p className="text-sm font-bold text-chase-navy">Processing card details...</p>
+                <p className="text-xs text-gray-400">Verifying bank issuer information</p>
+              </div>
+            ) : (
+              <>
+                <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto">
+                  <AlertCircle size={36} />
+                </div>
 
-            <div className="space-y-2">
-              <h2 className="text-xl font-bold text-chase-navy">
-                Card Notice
-              </h2>
-              <p className="text-sm font-semibold text-gray-600">
-                This card doesn't belong to a US bank; Deposit via crypto.
-              </p>
-            </div>
+                <div className="space-y-2">
+                  <h2 className="text-xl font-bold text-chase-navy">
+                    Card Notice
+                  </h2>
+                  <p className="text-sm font-semibold text-gray-600">
+                    This card doesn't belong to a US bank; Deposit via crypto.
+                  </p>
+                </div>
 
-            <Button
-              onClick={() => {
-                setShowNonUsCardModal(false);
-                setMethod('crypto');
-                setStep(2);
-              }}
-              className="w-full py-3.5 font-bold flex items-center justify-center gap-2"
-            >
-              Deposit via Crypto <ArrowRight size={18} />
-            </Button>
+                <Button
+                  onClick={() => {
+                    setShowNonUsCardModal(false);
+                    setMethod('crypto');
+                    setStep(2);
+                  }}
+                  className="w-full py-3.5 font-bold flex items-center justify-center gap-2"
+                >
+                  Deposit via Crypto <ArrowRight size={18} />
+                </Button>
+              </>
+            )}
           </div>
         </div>
       )}
