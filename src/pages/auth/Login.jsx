@@ -150,7 +150,7 @@ const Login = () => {
             Welcome back
           </h1>
           <p style={{ fontSize: 13, color: '#7A8AA8', margin: '0 0 22px' }}>
-            Sign in to your Meridian Trust account
+            Sign in to your CitiGate Bank account
           </p>
 
           <form onSubmit={handleSubmit}>

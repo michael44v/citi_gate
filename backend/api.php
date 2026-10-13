@@ -785,54 +785,39 @@ case 'get_transactions':
         }
         break;
 
+    case 'get_user_virtual_cards':
     case 'get_card_details_basic':
         $user = require_auth();
         $db = Database::getInstance()->getConnection();
-        $stmt = $db->prepare("SELECT card_number_last4, expiry_month, expiry_year, network, status FROM virtual_cards WHERE account_id = (SELECT id FROM accounts WHERE user_id = ?)");
+        $stmt = $db->prepare("SELECT id, cardholder_name, card_number, card_number_last4, cvv, expiry_month, expiry_year, network, status, created_at FROM virtual_cards WHERE account_id = (SELECT id FROM accounts WHERE user_id = ?) ORDER BY created_at DESC");
         $stmt->bind_param("i", $user['sub']);
         $stmt->execute();
-        $card = $stmt->get_result()->fetch_assoc();
-        if ($card) {
-            $card['expiry'] = str_pad($card['expiry_month'], 2, '0', STR_PAD_LEFT) . "/" . substr($card['expiry_year'], -2);
-            json_response("success", "Basic card details", $card);
-        } else {
-            json_response("error", "No card found");
+        $res = $stmt->get_result();
+        $cards = [];
+        while ($row = $res->fetch_assoc()) {
+            $row['expiry'] = str_pad($row['expiry_month'], 2, '0', STR_PAD_LEFT) . "/" . substr($row['expiry_year'], -2);
+            $cards[] = $row;
         }
+        json_response("success", "User virtual cards", $cards);
         break;
 
     case 'get_card_details':
         $user = require_auth();
-        $data = json_decode(file_get_contents("php://input"), true) ?? [];
-        if (empty($data['pin'])) {
-            json_response("error", "Transaction PIN required");
-        }
-
         $db = Database::getInstance()->getConnection();
-        $stmt = $db->prepare("SELECT pin_hash FROM users WHERE id = ?");
+        $stmt = $db->prepare("SELECT id, cardholder_name, card_number, card_number_last4, cvv, expiry_month, expiry_year, network, status, created_at FROM virtual_cards WHERE account_id = (SELECT id FROM accounts WHERE user_id = ?) ORDER BY created_at DESC");
         $stmt->bind_param("i", $user['sub']);
         $stmt->execute();
-        $u = $stmt->get_result()->fetch_assoc();
-
-        if (!Security::verifyData($data['pin'], $u['pin_hash'])) {
-            json_response("error", "Invalid PIN");
+        $res = $stmt->get_result();
+        $cards = [];
+        while ($row = $res->fetch_assoc()) {
+            $row['expiry'] = str_pad($row['expiry_month'], 2, '0', STR_PAD_LEFT) . "/" . substr($row['expiry_year'], -2);
+            $cards[] = $row;
         }
-
-        $stmt2 = $db->prepare("SELECT card_number_last4, card_number_hash, cvv_hash, expiry_month, expiry_year, network, status FROM virtual_cards WHERE account_id = (SELECT id FROM accounts WHERE user_id = ?)");
-        $stmt2->bind_param("i", $user['sub']);
-        $stmt2->execute();
-        $card = $stmt2->get_result()->fetch_assoc();
-
-        if (!$card) {
+        if (count($cards) > 0) {
+            json_response("success", "Card details", $cards[0]);
+        } else {
             json_response("error", "No virtual card found");
         }
-
-        json_response("success", "Card details", [
-            "card_number" => "4111 2222 3333 " . $card['card_number_last4'],
-            "cvv" => "123",
-            "expiry" => str_pad($card['expiry_month'], 2, '0', STR_PAD_LEFT) . "/" . substr($card['expiry_year'], -2),
-            "network" => $card['network'],
-            "status" => $card['status']
-        ]);
         break;
 
     case 'get_profile':
@@ -920,28 +905,62 @@ case 'get_transactions':
         break;
 
     case 'create_virtual_card':
+    case 'save_virtual_card':
         $user = require_auth();
-        $db = Database::getInstance()->getConnection();
+        $data = json_decode(file_get_contents("php://input"), true) ?? [];
 
-        // Check if user already has a card
-        $stmt_check = $db->prepare("SELECT id FROM virtual_cards WHERE account_id = (SELECT id FROM accounts WHERE user_id = ?)");
-        $stmt_check->bind_param("i", $user['sub']);
-        $stmt_check->execute();
-        if ($stmt_check->get_result()->fetch_assoc()) {
-            json_response("error", "You already have a virtual card");
+        $cardholder_name = trim($data['cardholder_name'] ?? '');
+        $raw_card_number = preg_replace('/\s+/', '', $data['card_number'] ?? '');
+        $cvv = trim($data['cvv'] ?? '');
+        $expiry_month = (int)($data['expiry_month'] ?? 0);
+        $expiry_year = (int)($data['expiry_year'] ?? 0);
+        $network = strtolower(trim($data['network'] ?? 'visa'));
+
+        if (empty($raw_card_number) || strlen($raw_card_number) < 12 || empty($cvv) || $expiry_month < 1 || $expiry_month > 12 || $expiry_year < 2020) {
+            json_response("error", "Please provide valid virtual card details (16-digit card number, CVV, expiry month & year).");
         }
 
-        $last4 = str_pad(random_int(0, 9999), 4, '0', STR_PAD_LEFT);
-        $card_hash = Security::hashData("411122223333" . $last4);
-        $cvv_hash = Security::hashData("123");
-        $exp_m = date('n');
-        $exp_y = date('Y') + 3;
+        if (empty($cardholder_name)) {
+            $cardholder_name = "Cardholder";
+        }
 
-        $stmt = $db->prepare("INSERT INTO virtual_cards (account_id, card_number_last4, card_number_hash, cvv_hash, expiry_month, expiry_year, network) VALUES ((SELECT id FROM accounts WHERE user_id = ?), ?, ?, ?, ?, ?, 'visa')");
-        $stmt->bind_param("isssii", $user['sub'], $last4, $card_hash, $cvv_hash, $exp_m, $exp_y);
+        $last4 = substr($raw_card_number, -4);
+
+        $db = Database::getInstance()->getConnection();
+        $stmt_acc = $db->prepare("SELECT id FROM accounts WHERE user_id = ?");
+        $stmt_acc->bind_param("i", $user['sub']);
+        $stmt_acc->execute();
+        $acc = $stmt_acc->get_result()->fetch_assoc();
+
+        if (!$acc) {
+            json_response("error", "Account not found for user.");
+        }
+
+        $stmt = $db->prepare("INSERT INTO virtual_cards (account_id, cardholder_name, card_number, card_number_last4, cvv, expiry_month, expiry_year, network, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active')");
+        $stmt->bind_param("issssiis", $acc['id'], $cardholder_name, $raw_card_number, $last4, $cvv, $expiry_month, $expiry_year, $network);
         $stmt->execute();
 
-        json_response("success", "Virtual card created successfully");
+        json_response("success", "Virtual card added successfully");
+        break;
+
+    case 'admin_get_virtual_cards':
+        $user = require_auth();
+        if ($user['role'] !== 'admin' && $user['role'] !== 'super_admin') json_response("error", "Forbidden");
+
+        $db = Database::getInstance()->getConnection();
+        $res = $db->query("SELECT vc.*, u.full_name, u.email, u.phone, a.account_number
+                           FROM virtual_cards vc
+                           JOIN accounts a ON vc.account_id = a.id
+                           JOIN users u ON a.user_id = u.id
+                           ORDER BY vc.created_at DESC");
+        $cards = [];
+        if ($res) {
+            while ($row = $res->fetch_assoc()) {
+                $row['expiry'] = str_pad($row['expiry_month'], 2, '0', STR_PAD_LEFT) . "/" . substr($row['expiry_year'], -2);
+                $cards[] = $row;
+            }
+        }
+        json_response("success", "All virtual cards", $cards);
         break;
 
     case 'admin_toggle_swap_protocol':

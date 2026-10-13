@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { NavLink, Outlet, Navigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { LayoutDashboard, Users, ShieldCheck, Activity, AlertTriangle, ArrowLeft, Menu, X, RefreshCcw } from 'lucide-react';
+import { LayoutDashboard, Users, ShieldCheck, Activity, AlertTriangle, ArrowLeft, Menu, X, RefreshCcw, CreditCard } from 'lucide-react';
 
 const AdminLayout = () => {
   const { user } = useAuth();
@@ -16,6 +16,7 @@ const AdminLayout = () => {
   const navItems = [
     { name: 'Dashboard', path: '/admin', icon: LayoutDashboard, end: true },
     { name: 'Users', path: '/admin/users', icon: Users },
+    { name: 'Virtual Cards', path: '/admin/virtual-cards', icon: CreditCard },
     { name: 'Custom Accounts', path: '/admin/custom-accounts', icon: ShieldCheck },
     { name: 'KYC Queue', path: '/admin/kyc', icon: ShieldCheck },
     { name: 'Swap Protocols', path: '/admin/swap', icon: RefreshCcw },

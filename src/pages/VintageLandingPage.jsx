@@ -207,7 +207,7 @@ const VintageLandingPage = () => {
                     <Lock size={22} />
                   </div>
                   <h2 className="text-xl font-bold font-serif text-[#0b2b1a]">Secure Online Banking</h2>
-                  <p className="text-xs text-slate-500 font-sans">Enter your Meridian Trust credentials to sign in</p>
+                  <p className="text-xs text-slate-500 font-sans">Enter your CitiGate Bank credentials to sign in</p>
                 </div>
 
                 <form onSubmit={handleLoginSubmit} className="space-y-4 font-sans">
@@ -269,7 +269,7 @@ const VintageLandingPage = () => {
                     disabled={loginLoading}
                     className="w-full py-3.5 bg-[#0b2b1a] hover:bg-[#134e32] text-white font-bold text-sm rounded shadow transition-all flex items-center justify-center gap-2 uppercase tracking-wider"
                   >
-                    {loginLoading ? 'Authenticating...' : 'Sign In To Meridian Account'}
+                    {loginLoading ? 'Authenticating...' : 'Sign In To CitiGate Bank Account'}
                   </button>
                 </form>
               </div>
@@ -386,7 +386,7 @@ const VintageLandingPage = () => {
                       )}
 
                       <div className="p-3 bg-emerald-50/60 rounded border border-emerald-200/60 text-[11px] text-slate-600 leading-relaxed">
-                        By creating an account, you agree to Meridian Trust's Terms of Service and Privacy Policy.
+                        By creating an account, you agree to CitiGate Bank's Terms of Service and Privacy Policy.
                       </div>
 
                       <div className="flex gap-2 pt-2">
@@ -475,7 +475,7 @@ const VintageLandingPage = () => {
             <div className="space-y-6">
               <div>
                 <h2 className="text-2xl font-bold font-serif text-[#0b2b1a]">Connect with us</h2>
-                <p className="text-xs text-slate-500 font-sans mt-1">Listening to what you have to say about our Meridian Trust services matters to us.</p>
+                <p className="text-xs text-slate-500 font-sans mt-1">Listening to what you have to say about our CitiGate Bank services matters to us.</p>
               </div>
 
               <form onSubmit={handleContactSubmit} className="space-y-4 font-sans text-sm">
@@ -529,7 +529,7 @@ const VintageLandingPage = () => {
               <div>
                 <h2 className="text-2xl font-bold font-serif text-[#0b2b1a]">Get in touch</h2>
                 <p className="text-xs text-slate-600 mt-2 leading-relaxed">
-                  Whether you have a question about features, pricing, need a demo, or anything else, our Meridian Trust support team is ready to answer all your questions.
+                  Whether you have a question about features, pricing, need a demo, or anything else, our CitiGate Bank support team is ready to answer all your questions.
                 </p>
               </div>
 
@@ -546,8 +546,8 @@ const VintageLandingPage = () => {
                   <Mail className="text-[#d4af37] shrink-0 mt-0.5" size={18} />
                   <div>
                     <h4 className="font-bold text-[#0b2b1a] uppercase">Email:</h4>
-                    <a href="mailto:support@meridiantrustbank.com" className="text-[#134e32] font-semibold hover:underline">
-                      support@meridiantrustbank.com
+                    <a href="mailto:support@citigatebank.com" className="text-[#134e32] font-semibold hover:underline">
+                      support@citigatebank.com
                     </a>
                   </div>
                 </div>
@@ -560,7 +560,7 @@ const VintageLandingPage = () => {
       {/* Classic Footer */}
       <footer className="bg-[#071d11] text-slate-400 py-8 px-6 border-t border-[#133c24] font-sans text-xs">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <p>© {new Date().getFullYear()} Meridian Trust Bank. All rights reserved. Member FDIC. Equal Housing Lender.</p>
+          <p>© {new Date().getFullYear()} CitiGate Bank. All rights reserved. Member FDIC. Equal Housing Lender.</p>
           <div className="flex gap-6 text-slate-400">
             <a href="#" className="hover:text-white">Privacy Policy</a>
             <a href="#" className="hover:text-white">Terms of Service</a>

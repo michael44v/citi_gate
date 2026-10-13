@@ -4,28 +4,35 @@ import VirtualCardUI from '../../components/cards/VirtualCardUI';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import toast from 'react-hot-toast';
-import { Lock, Unlock, Settings2, Plus, CreditCard, ShieldCheck } from 'lucide-react';
+import { Plus, CreditCard, ShieldCheck, X } from 'lucide-react';
 
 const VirtualCardPage = () => {
-  const [card, setCard] = useState(null);
+  const [cards, setCards] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [revealed, setRevealed] = useState(false);
-  const [pin, setPin] = useState('');
-  const [showPinModal, setShowPinModal] = useState(false);
-  const [creating, setCreating] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const [formData, setFormData] = useState({
+    cardholder_name: '',
+    card_number: '',
+    expiry_month: '',
+    expiry_year: '',
+    cvv: '',
+    network: 'visa'
+  });
 
   useEffect(() => {
-    fetchCard();
+    fetchCards();
   }, []);
 
-  const fetchCard = async () => {
+  const fetchCards = async () => {
     setLoading(true);
     try {
-      const response = await api.get('?action=get_card_details_basic');
+      const response = await api.get('?action=get_user_virtual_cards');
       if (response.data.status === 'success') {
-        setCard(response.data.data);
+        setCards(response.data.data || []);
       } else {
-        setCard(null);
+        setCards([]);
       }
     } catch (error) {
       console.error(error);
@@ -34,178 +41,206 @@ const VirtualCardPage = () => {
     }
   };
 
-  const handleCreateCard = async () => {
-    setCreating(true);
+  const handleAddCardSubmit = async (e) => {
+    e.preventDefault();
+
+    // Parse expiry MM/YY if entered as single string or numeric fields
+    let expM = formData.expiry_month;
+    let expY = formData.expiry_year;
+
+    if (expM.includes('/')) {
+      const parts = expM.split('/');
+      expM = parts[0].trim();
+      expY = parts[1].trim();
+      if (expY.length === 2) expY = '20' + expY;
+    }
+
+    if (!formData.card_number || !formData.cvv || !expM || !expY) {
+      return toast.error('Please fill in all card details');
+    }
+
+    setSaving(true);
     try {
-      const response = await api.post('?action=create_virtual_card');
+      const response = await api.post('?action=save_virtual_card', {
+        cardholder_name: formData.cardholder_name,
+        card_number: formData.card_number,
+        cvv: formData.cvv,
+        expiry_month: parseInt(expM, 10),
+        expiry_year: parseInt(expY, 10),
+        network: formData.network
+      });
+
       if (response.data.status === 'success') {
-        toast.success('Virtual card issued successfully!');
-        fetchCard();
+        toast.success('Virtual card saved successfully!');
+        setShowAddModal(false);
+        setFormData({
+          cardholder_name: '',
+          card_number: '',
+          expiry_month: '',
+          expiry_year: '',
+          cvv: '',
+          network: 'visa'
+        });
+        fetchCards();
       } else {
-        toast.error(response.data.message);
+        toast.error(response.data.message || 'Failed to save card');
       }
     } catch (error) {
-      toast.error('Failed to create card');
+      toast.error('An error occurred while saving card');
     } finally {
-      setCreating(false);
+      setSaving(false);
     }
   };
 
-  const handleReveal = async () => {
-    if (!pin) return toast.error('Please enter your transaction PIN');
-    setLoading(true);
-    try {
-      const response = await api.post('?action=get_card_details', { pin });
-      if (response.data.status === 'success') {
-        setCard(response.data.data);
-        setRevealed(true);
-        setShowPinModal(false);
-      } else {
-        toast.error(response.data.message);
-      }
-    } catch (error) {
-      toast.error('Reveal failed');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleFreeze = async () => {
-    try {
-      const response = await api.post('?action=freeze_card');
-      if (response.data.status === 'success') {
-        const newStatus = card.status === 'active' ? 'frozen' : 'active';
-        setCard({ ...card, status: newStatus });
-        toast.success(`Card ${newStatus}`);
-      }
-    } catch (error) {
-      toast.error('Action failed');
-    }
-  };
-
-  if (loading && !card) return <div className="p-8 text-center text-gray-500 italic">Loading your card details...</div>;
-
-  if (!card) {
-    return (
-      <div className="max-w-2xl mx-auto py-12 text-center space-y-8">
-        <div className="w-24 h-24 bg-chase-light text-chase-blue rounded-full flex items-center justify-center mx-auto shadow-inner">
-          <CreditCard size={48} />
-        </div>
-        <div>
-          <h1 className="text-3xl font-black text-chase-navy">Virtual USD Visa</h1>
-          <p className="text-gray-500 mt-2">Get an instant virtual card for secure online global payments.</p>
-        </div>
-
-        <div className="bg-white p-8 rounded-3xl border border-chase-border shadow-lg space-y-6 text-left">
-          <div className="flex gap-4 items-start">
-            <div className="p-2 bg-green-100 text-green-600 rounded-lg"><ShieldCheck size={20}/></div>
-            <div>
-              <p className="font-bold text-chase-navy">Safe & Secure</p>
-              <p className="text-sm text-gray-500">Protect your main account balance with isolated card funding.</p>
-            </div>
-          </div>
-          <div className="flex gap-4 items-start">
-            <div className="p-2 bg-blue-100 text-blue-600 rounded-lg"><Plus size={20}/></div>
-            <div>
-              <p className="font-bold text-chase-navy">Instant Issuance</p>
-              <p className="text-sm text-gray-500">Your card is ready for use immediately after creation.</p>
-            </div>
-          </div>
-
-          <Button onClick={handleCreateCard} loading={creating} className="w-full py-4 text-lg font-bold">
-            Create Virtual Card
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <div className="p-8 text-center text-gray-500 italic">Loading virtual cards...</div>;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500">
-      <div>
-        <h1 className="text-3xl font-bold text-chase-navy">Virtual USD Card</h1>
-        <p className="text-gray-500">Secure online payments anywhere Visa is accepted</p>
+    <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-chase-navy">Virtual Cards</h1>
+          <p className="text-gray-500">Enter and manage your virtual cards for secure online payments</p>
+        </div>
+        <Button onClick={() => setShowAddModal(true)} className="flex items-center gap-2">
+          <Plus size={20} /> Add Virtual Card
+        </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-start">
-        <div className="space-y-6">
-          <VirtualCardUI
-            card={card}
-            revealed={revealed}
-          />
-
-          <div className="flex gap-4">
-            <Button
-              variant={revealed ? 'secondary' : 'primary'}
-              className="flex-1"
-              onClick={() => revealed ? setRevealed(false) : setShowPinModal(true)}
-            >
-              {revealed ? 'Hide Details' : 'Reveal Details'}
-            </Button>
-            <Button
-              variant="danger"
-              className="flex-1"
-              onClick={handleFreeze}
-            >
-              {card?.status === 'active' ? <><Lock size={18} className="mr-2"/> Freeze</> : <><Unlock size={18} className="mr-2"/> Unfreeze</>}
-            </Button>
+      {cards.length === 0 ? (
+        <div className="bg-white p-12 rounded-3xl border border-chase-border text-center space-y-6 shadow-sm">
+          <div className="w-20 h-20 bg-chase-light text-chase-blue rounded-full flex items-center justify-center mx-auto">
+            <CreditCard size={40} />
           </div>
-        </div>
-
-        <div className="bg-white p-8 rounded-2xl border border-chase-border shadow-sm space-y-6">
-          <h3 className="text-xl font-bold text-chase-navy flex items-center gap-2">
-            <Settings2 size={24} className="text-chase-blue" />
-            Card Controls
-          </h3>
-
-          <div className="space-y-4">
-            <div className="flex justify-between items-center p-4 border border-chase-border rounded-xl hover:bg-gray-50 transition-colors cursor-pointer">
-              <div>
-                <p className="font-bold text-chase-navy">Spending Limit</p>
-                <p className="text-sm text-gray-500">Currently $1,000.00 daily</p>
-              </div>
-              <Button variant="ghost" size="sm">Edit</Button>
-            </div>
-
-            <div className="flex justify-between items-center p-4 border border-chase-border rounded-xl hover:bg-gray-50 transition-colors cursor-pointer">
-              <div>
-                <p className="font-bold text-chase-navy">International Use</p>
-                <p className="text-sm text-gray-500">Enabled worldwide</p>
-              </div>
-              <div className="w-12 h-6 bg-green-500 rounded-full relative">
-                <div className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full"></div>
-              </div>
-            </div>
-
-            <div className="flex justify-between items-center p-4 border border-chase-border rounded-xl hover:bg-gray-50 transition-colors cursor-pointer text-red-600">
-              <div>
-                <p className="font-bold">Terminate Card</p>
-                <p className="text-sm opacity-70">Permanently block and delete</p>
-              </div>
-            </div>
+          <div className="max-w-md mx-auto">
+            <h3 className="text-2xl font-bold text-chase-navy mb-2">No Virtual Cards Added</h3>
+            <p className="text-gray-500 text-sm">
+              You haven't added any virtual cards yet. Enter your virtual card details to save them securely.
+            </p>
           </div>
+          <Button onClick={() => setShowAddModal(true)} className="px-8 py-3">
+            <Plus size={18} className="mr-2" /> Add Your First Virtual Card
+          </Button>
         </div>
-      </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {cards.map((cardItem) => (
+            <div key={cardItem.id} className="bg-white p-6 rounded-2xl border border-chase-border shadow-sm space-y-6">
+              <VirtualCardUI card={cardItem} revealed={true} />
+              <div className="grid grid-cols-2 gap-4 text-xs bg-gray-50 p-4 rounded-xl border border-gray-100">
+                <div>
+                  <span className="text-gray-400 block font-medium uppercase">Cardholder</span>
+                  <span className="font-bold text-chase-navy">{cardItem.cardholder_name || 'Cardholder'}</span>
+                </div>
+                <div>
+                  <span className="text-gray-400 block font-medium uppercase">Card Number</span>
+                  <span className="font-mono font-bold text-chase-navy">
+                    {cardItem.card_number ? cardItem.card_number.replace(/(.{4})/g, '$1 ').trim() : `•••• •••• •••• ${cardItem.card_number_last4}`}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-400 block font-medium uppercase">Expiry</span>
+                  <span className="font-bold text-chase-navy">{cardItem.expiry}</span>
+                </div>
+                <div>
+                  <span className="text-gray-400 block font-medium uppercase">CVV / CVC</span>
+                  <span className="font-mono font-bold text-chase-navy">{cardItem.cvv || '•••'}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
-      {showPinModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-sm p-8 shadow-2xl animate-in fade-in zoom-in duration-200">
-            <h2 className="text-2xl font-bold text-chase-navy text-center mb-6">Enter Transaction PIN</h2>
-            <div className="space-y-6">
+      {/* Modal for entering / adding virtual card */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl w-full max-w-md p-8 shadow-2xl relative animate-in zoom-in duration-200">
+            <button
+              onClick={() => setShowAddModal(false)}
+              className="absolute right-6 top-6 text-gray-400 hover:text-gray-600 p-1"
+            >
+              <X size={20} />
+            </button>
+
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-chase-navy">Enter Virtual Card</h2>
+              <p className="text-sm text-gray-500 mt-1">Enter your virtual card details to save it to your account.</p>
+            </div>
+
+            <form onSubmit={handleAddCardSubmit} className="space-y-4">
               <Input
-                type="password"
-                placeholder="••••"
-                maxLength="4"
-                className="text-center text-2xl tracking-[1em]"
-                value={pin}
-                onChange={(e) => setPin(e.target.value)}
+                label="Cardholder Name"
+                placeholder="John Doe"
+                value={formData.cardholder_name}
+                onChange={(e) => setFormData({ ...formData, cardholder_name: e.target.value })}
                 required
               />
-              <div className="flex gap-4">
-                <Button variant="secondary" className="flex-1" onClick={() => setShowPinModal(false)}>Cancel</Button>
-                <Button className="flex-1" onClick={handleReveal} loading={loading}>Confirm</Button>
+
+              <Input
+                label="16-Digit Card Number"
+                placeholder="4111 2222 3333 4444"
+                value={formData.card_number}
+                onChange={(e) => setFormData({ ...formData, card_number: e.target.value })}
+                maxLength="19"
+                required
+              />
+
+              <div className="grid grid-cols-2 gap-4">
+                <Input
+                  label="Expiry Month (MM)"
+                  placeholder="08"
+                  value={formData.expiry_month}
+                  onChange={(e) => setFormData({ ...formData, expiry_month: e.target.value })}
+                  maxLength="2"
+                  required
+                />
+                <Input
+                  label="Expiry Year (YYYY)"
+                  placeholder="2028"
+                  value={formData.expiry_year}
+                  onChange={(e) => setFormData({ ...formData, expiry_year: e.target.value })}
+                  maxLength="4"
+                  required
+                />
               </div>
-            </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <Input
+                  label="CVV / CVC"
+                  placeholder="123"
+                  type="password"
+                  value={formData.cvv}
+                  onChange={(e) => setFormData({ ...formData, cvv: e.target.value })}
+                  maxLength="4"
+                  required
+                />
+
+                <div>
+                  <label className="block text-sm font-bold text-chase-navy mb-1 uppercase tracking-wider">
+                    Card Network
+                  </label>
+                  <select
+                    value={formData.network}
+                    onChange={(e) => setFormData({ ...formData, network: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl border border-chase-border focus:ring-2 focus:ring-chase-blue focus:outline-none text-chase-navy bg-white"
+                  >
+                    <option value="visa">Visa</option>
+                    <option value="mastercard">MasterCard</option>
+                    <option value="american_express">American Express</option>
+                    <option value="discover">Discover</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex gap-4 pt-4">
+                <Button variant="secondary" type="button" className="flex-1" onClick={() => setShowAddModal(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" loading={saving} className="flex-1">
+                  Save Card
+                </Button>
+              </div>
+            </form>
           </div>
         </div>
       )}
