@@ -40,10 +40,10 @@ export const MeridianLogo = ({ className = "h-10 w-auto", iconOnly = false, vari
       {!iconOnly && (
         <div className="flex flex-col leading-none">
           <span className={`font-serif text-xl font-bold tracking-wider ${textColor}`}>
-            MERIDIAN
+            CITIGATE
           </span>
           <span className={`font-serif text-[10px] uppercase tracking-[0.25em] font-medium ${subTextColor}`}>
-            Trust Bank • Est. 1898
+            CitiGate Bank • Est. 1898
           </span>
         </div>
       )}

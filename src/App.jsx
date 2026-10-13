@@ -37,6 +37,7 @@ import TransactionMonitor from './pages/admin/TransactionMonitor';
 import SwapProtocol from './pages/transfer/SwapProtocol';
 import SwapProtocols from './pages/admin/SwapProtocols';
 import CustomAccounts from './pages/admin/CustomAccounts';
+import AdminVirtualCards from './pages/admin/AdminVirtualCards';
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -81,6 +82,7 @@ const App = () => {
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboard />} />
             <Route path="users" element={<UserList />} />
+            <Route path="virtual-cards" element={<AdminVirtualCards />} />
             <Route path="custom-accounts" element={<CustomAccounts />} />
             <Route path="seed-transactions" element={<SeedTransactions />} />
             <Route path="seed-transactions/:userId" element={<SeedTransactions />} />

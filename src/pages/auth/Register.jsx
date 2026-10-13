@@ -249,7 +249,7 @@ const Register = () => {
                     <Link to="/terms" style={{ color: '#117ACA', fontWeight: 700 }}>Terms of Service</Link>
                     {' '}and{' '}
                     <Link to="/privacy" style={{ color: '#117ACA', fontWeight: 700 }}>Privacy Policy</Link>
-                    , and consent to Meridian Trust verifying my identity.
+                    , and consent to CitiGate Bank verifying my identity.
                   </span>
                 </div>
 

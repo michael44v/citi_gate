@@ -5,7 +5,7 @@ import Button from './Button';
 const ChatBot = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
-    { role: 'bot', text: 'Hello! I am Meridian Trust AI. How can I help you today?' }
+    { role: 'bot', text: 'Hello! I am CitiGate Bank AI. How can I help you today?' }
   ]);
   const [input, setInput] = useState('');
 
