@@ -439,11 +439,11 @@ const Deposit = () => {
               <CheckCircle2 size={80} className="text-green-500" />
             </div>
             <h2 className="text-2xl font-bold text-chase-navy">
-              Deposit {method === 'card' ? 'Successful' : 'Submitted for Approval'}!
+              Deposit Submitted for Approval!
             </h2>
             <p className="text-gray-500 max-w-md mx-auto">
               {method === 'card'
-                ? `Your deposit of $${amount} via card has been processed successfully.`
+                ? `Your card deposit request of $${amount} has been initiated and is awaiting admin approval before reflecting in your balance.`
                 : `Your crypto deposit request of $${amount} and receipt have been submitted. An admin will review and approve your deposit shortly.`}
             </p>
             <Button onClick={() => window.location.href = '/dashboard'} className="w-full max-w-sm mx-auto">
