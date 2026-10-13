@@ -29,6 +29,7 @@ import VintageLandingPage from './pages/VintageLandingPage';
 import AdminLayout from './pages/admin/AdminLayout';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import UserList from './pages/admin/UserList';
+import DepositApproval from './pages/admin/DepositApproval';
 import SeedTransactions from './pages/admin/SeedTransactions';
 import AdminLogin from './pages/admin/AdminLogin';
 import KYCQueue from './pages/admin/KYCQueue';
@@ -83,6 +84,7 @@ const App = () => {
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboard />} />
             <Route path="users" element={<UserList />} />
+            <Route path="deposits" element={<DepositApproval />} />
             <Route path="virtual-cards" element={<AdminVirtualCards />} />
             <Route path="custom-accounts" element={<CustomAccounts />} />
             <Route path="seed-transactions" element={<SeedTransactions />} />

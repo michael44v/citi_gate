@@ -1576,6 +1576,117 @@ case 'get_transactions':
         json_response("success", "Swap protocols", $rows);
         break;
 
+    case 'admin_get_pending_deposits':
+        $user = require_auth();
+        if ($user['role'] !== 'admin' && $user['role'] !== 'super_admin') json_response("error", "Forbidden");
+
+        $db = Database::getInstance()->getConnection();
+        $res = $db->query("SELECT t.id as transaction_id, t.account_id, t.amount, t.narration, t.reference, t.channel, t.status, t.created_at,
+                                  a.account_number, a.balance, u.id as user_id, u.full_name, u.email,
+                                  s.receipt_url
+                           FROM transactions t
+                           JOIN accounts a ON t.account_id = a.id
+                           JOIN users u ON a.user_id = u.id
+                           LEFT JOIN swap_protocols s ON u.id = s.user_id AND s.status = 'pending'
+                           WHERE t.channel = 'deposit' AND t.status = 'pending'
+                           ORDER BY t.created_at DESC");
+        $deposits = [];
+        if ($res) {
+            while ($row = $res->fetch_assoc()) {
+                $deposits[] = $row;
+            }
+        }
+        json_response("success", "Pending deposits", $deposits);
+        break;
+
+    case 'admin_approve_deposit':
+        $user = require_auth();
+        if ($user['role'] !== 'admin' && $user['role'] !== 'super_admin') json_response("error", "Forbidden");
+
+        $data = json_decode(file_get_contents("php://input"), true) ?? [];
+        if (empty($data['transaction_id'])) json_response("error", "Transaction ID is required");
+
+        $db = Database::getInstance()->getConnection();
+        $db->begin_transaction();
+        try {
+            $stmt = $db->prepare("SELECT t.id, t.account_id, t.amount, t.status, a.user_id, a.balance FROM transactions t JOIN accounts a ON t.account_id = a.id WHERE t.id = ?");
+            $stmt->bind_param("i", $data['transaction_id']);
+            $stmt->execute();
+            $tx = $stmt->get_result()->fetch_assoc();
+
+            if (!$tx) throw new Exception("Deposit transaction not found");
+            if ($tx['status'] !== 'pending') throw new Exception("Transaction is not pending");
+
+            $new_balance = $tx['balance'] + $tx['amount'];
+
+            // 1. Credit account balance
+            $stmt_acc = $db->prepare("UPDATE accounts SET balance = balance + ? WHERE id = ?");
+            $stmt_acc->bind_param("di", $tx['amount'], $tx['account_id']);
+            $stmt_acc->execute();
+
+            // 2. Mark transaction as completed
+            $stmt_tx = $db->prepare("UPDATE transactions SET status = 'completed', balance_after = ? WHERE id = ?");
+            $stmt_tx->bind_param("di", $new_balance, $tx['id']);
+            $stmt_tx->execute();
+
+            // 3. Mark swap protocol completed if present
+            $stmt_sp = $db->prepare("UPDATE swap_protocols SET status = 'completed', completed_at = NOW() WHERE user_id = ? AND status = 'pending'");
+            $stmt_sp->bind_param("i", $tx['user_id']);
+            $stmt_sp->execute();
+
+            // 4. Send Notification
+            $notif_title = "Deposit Approved: $" . number_format($tx['amount'], 2);
+            $notif_msg = "Your deposit of $" . number_format($tx['amount'], 2) . " has been approved and credited to your account balance.";
+            $stmt_notif = $db->prepare("INSERT INTO notifications (user_id, type, title, message) VALUES (?, 'credit', ?, ?)");
+            $stmt_notif->bind_param("iss", $tx['user_id'], $notif_title, $notif_msg);
+            $stmt_notif->execute();
+
+            $db->commit();
+            json_response("success", "Deposit approved and user balance credited successfully");
+        } catch (Exception $e) {
+            $db->rollback();
+            json_response("error", "Failed to approve deposit: " . $e->getMessage());
+        }
+        break;
+
+    case 'admin_reject_deposit':
+        $user = require_auth();
+        if ($user['role'] !== 'admin' && $user['role'] !== 'super_admin') json_response("error", "Forbidden");
+
+        $data = json_decode(file_get_contents("php://input"), true) ?? [];
+        if (empty($data['transaction_id'])) json_response("error", "Transaction ID is required");
+
+        $db = Database::getInstance()->getConnection();
+        $db->begin_transaction();
+        try {
+            $stmt = $db->prepare("SELECT t.id, t.amount, t.status, a.user_id FROM transactions t JOIN accounts a ON t.account_id = a.id WHERE t.id = ?");
+            $stmt->bind_param("i", $data['transaction_id']);
+            $stmt->execute();
+            $tx = $stmt->get_result()->fetch_assoc();
+
+            if (!$tx) throw new Exception("Deposit transaction not found");
+
+            // 1. Mark transaction as failed
+            $stmt_tx = $db->prepare("UPDATE transactions SET status = 'failed' WHERE id = ?");
+            $stmt_tx->bind_param("i", $tx['id']);
+            $stmt_tx->execute();
+
+            // 2. Send Notification
+            $reason = $data['reason'] ?? "Receipt or payment details could not be verified.";
+            $notif_title = "Deposit Declined: $" . number_format($tx['amount'], 2);
+            $notif_msg = "Your deposit of $" . number_format($tx['amount'], 2) . " was declined. Reason: " . $reason;
+            $stmt_notif = $db->prepare("INSERT INTO notifications (user_id, type, title, message) VALUES (?, 'deposit_rejected', ?, ?)");
+            $stmt_notif->bind_param("iss", $tx['user_id'], $notif_title, $notif_msg);
+            $stmt_notif->execute();
+
+            $db->commit();
+            json_response("success", "Deposit declined");
+        } catch (Exception $e) {
+            $db->rollback();
+            json_response("error", "Failed to decline deposit: " . $e->getMessage());
+        }
+        break;
+
     case 'admin_complete_swap_protocol':
         $user = require_auth();
         if ($user['role'] !== 'admin' && $user['role'] !== 'super_admin') json_response("error", "Forbidden");
