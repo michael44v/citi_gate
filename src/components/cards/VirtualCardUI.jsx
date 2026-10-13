@@ -1,6 +1,42 @@
 import React from 'react';
 import { Shield, Lock } from 'lucide-react';
 
+const formatCardNumberGroup = (num) => {
+  if (!num) return '••••  ••••  ••••  ****';
+  const clean = num.replace(/\s+/g, '');
+  return clean.replace(/(.{4})/g, '$1 ').trim();
+};
+
+const renderNetworkLogo = (network) => {
+  const net = (network || 'visa').toLowerCase();
+  if (net === 'mastercard') {
+    return (
+      <div className="flex items-center -space-x-2" title="MasterCard">
+        <div className="w-6 h-6 rounded-full bg-red-500/90 shadow-sm"></div>
+        <div className="w-6 h-6 rounded-full bg-amber-400/90 shadow-sm"></div>
+      </div>
+    );
+  } else if (net === 'american_express' || net === 'amex') {
+    return (
+      <div className="bg-blue-600 px-2 py-0.5 rounded font-black text-[10px] tracking-tighter text-white border border-white/40">
+        AMEX
+      </div>
+    );
+  } else if (net === 'discover') {
+    return (
+      <div className="flex items-center font-extrabold text-xs tracking-tight text-orange-400">
+        DISCOVER
+      </div>
+    );
+  } else {
+    return (
+      <div className="font-black italic text-lg tracking-wider text-white drop-shadow-sm">
+        VISA
+      </div>
+    );
+  }
+};
+
 const VirtualCardUI = ({ card, revealed, onReveal, onFreeze }) => {
   const isFrozen = card?.status === 'frozen';
 
@@ -15,16 +51,16 @@ const VirtualCardUI = ({ card, revealed, onReveal, onFreeze }) => {
       <div className="relative z-10 h-full flex flex-col justify-between">
         <div className="flex justify-between items-start">
           <div className="font-serif font-bold text-lg tracking-tight text-amber-200">CitiGate Bank <span className="font-sans font-normal opacity-70 text-xs">Virtual</span></div>
-          <div className="text-right">
-            <p className="text-[10px] uppercase font-bold opacity-50">Card Type</p>
-            <p className="text-sm font-black italic">{card?.network?.toUpperCase() || 'VISA'}</p>
+          <div className="flex flex-col items-end gap-1">
+            <p className="text-[10px] uppercase font-bold opacity-50">Card Network</p>
+            {renderNetworkLogo(card?.network)}
           </div>
         </div>
 
         <div className="space-y-1">
           <p className="text-[10px] uppercase font-bold opacity-50 tracking-widest">Card Number</p>
-          <p className="text-xl font-mono tracking-[0.2em] font-bold">
-            {revealed ? card?.card_number : '••••  ••••  ••••  ' + (card?.card_number_last4 || '****')}
+          <p className="text-xl font-mono tracking-[0.15em] font-bold">
+            {revealed ? formatCardNumberGroup(card?.card_number) : '••••  ••••  ••••  ' + (card?.card_number_last4 || '****')}
           </p>
         </div>
 

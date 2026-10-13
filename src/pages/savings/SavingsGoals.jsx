@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Button from '../../components/ui/Button';
 import { Target, TrendingUp, Plus, Calendar } from 'lucide-react';
 import { formatUSD } from '../../utils/formatCurrency';
 
 const SavingsGoals = () => {
+  const navigate = useNavigate();
   const [goals, setGoals] = useState([
     { id: 1, name: 'Emergency Fund', target: 10000, current: 4500, date: 'Dec 2026' },
     { id: 2, name: 'New Car', target: 25000, current: 8000, date: 'May 2027' },
@@ -59,7 +61,7 @@ const SavingsGoals = () => {
               </div>
 
               <div className="flex gap-3">
-                <Button variant="secondary" className="flex-1">Add Funds</Button>
+                <Button variant="secondary" onClick={() => navigate('/account/deposit')} className="flex-1">Add Funds</Button>
                 <Button variant="ghost" className="flex-1">Manage</Button>
               </div>
             </div>
