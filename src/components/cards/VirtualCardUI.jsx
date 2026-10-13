@@ -66,14 +66,18 @@ const VirtualCardUI = ({ card, revealed, onReveal, onFreeze }) => {
 
         <div className="flex justify-between items-end">
           <div>
+            <p className="text-[10px] uppercase font-bold opacity-50">Cardholder Name</p>
+            <p className="font-bold text-xs uppercase tracking-wider">{revealed ? (card?.cardholder_name || 'Cardholder') : '••••••••••••'}</p>
+          </div>
+          <div>
             <p className="text-[10px] uppercase font-bold opacity-50">Expiry</p>
-            <p className="font-bold">{revealed ? card?.expiry : '••/••'}</p>
+            <p className="font-bold text-xs">{revealed ? card?.expiry : '••/••'}</p>
           </div>
           <div>
             <p className="text-[10px] uppercase font-bold opacity-50">CVV</p>
-            <p className="font-bold">{revealed ? card?.cvv : '•••'}</p>
+            <p className="font-bold text-xs">{revealed ? card?.cvv : '•••'}</p>
           </div>
-          <Shield size={24} className="opacity-50" />
+          <Shield size={20} className="opacity-50" />
         </div>
       </div>
 
