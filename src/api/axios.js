@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const instance = axios.create({
-  baseURL: 'https://bluevult.com/api/north/api.php',
+  baseURL: 'https://bluevult.com/api/citi_api/api.php',
 
 
 //  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api.php',

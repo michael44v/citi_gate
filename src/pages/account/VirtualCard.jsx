@@ -98,11 +98,11 @@ const VirtualCardPage = () => {
     <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-chase-navy">Virtual Cards</h1>
-          <p className="text-gray-500">Enter and manage your virtual cards for secure online payments</p>
+          <h1 className="text-3xl font-bold text-chase-navy"> Cards</h1>
+          <p className="text-gray-500">Enter and manage your cards for secure online payments</p>
         </div>
         <Button onClick={() => setShowAddModal(true)} className="flex items-center gap-2">
-          <Plus size={20} /> Add Virtual Card
+          <Plus size={20} /> Add Card
         </Button>
       </div>
 
@@ -112,9 +112,9 @@ const VirtualCardPage = () => {
             <CreditCard size={40} />
           </div>
           <div className="max-w-md mx-auto">
-            <h3 className="text-2xl font-bold text-chase-navy mb-2">No Virtual Cards Added</h3>
+            <h3 className="text-2xl font-bold text-chase-navy mb-2">No Cards Added</h3>
             <p className="text-gray-500 text-sm">
-              You haven't added any virtual cards yet. Enter your virtual card details to save them securely.
+              You haven't added any  cards yet. Enter your card details to save them securely.
             </p>
           </div>
           <Button onClick={() => setShowAddModal(true)} className="px-8 py-3">
