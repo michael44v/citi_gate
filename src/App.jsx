@@ -63,6 +63,7 @@ const App = () => {
           <Route path="/dashboard" element={<ProtectedRoute><DashboardHome /></ProtectedRoute>} />
           <Route path="/account" element={<ProtectedRoute><AccountDetails /></ProtectedRoute>} />
           <Route path="/deposit" element={<ProtectedRoute><Deposit /></ProtectedRoute>} />
+          <Route path="/account/deposit" element={<ProtectedRoute><Deposit /></ProtectedRoute>} />
           <Route path="/account/card" element={<ProtectedRoute><VirtualCard /></ProtectedRoute>} />
           <Route path="/transfer/send" element={<ProtectedRoute><SendMoney /></ProtectedRoute>} />
           <Route path="/transfer/swap" element={<ProtectedRoute><SwapProtocol /></ProtectedRoute>} />
