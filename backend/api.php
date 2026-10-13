@@ -692,25 +692,15 @@ case 'get_transactions':
         $db->begin_transaction();
         try {
             $ref = "DEP" . time() . strtoupper(bin2hex(random_bytes(3)));
-            
-            if ($data['method'] === 'card') {
-                $stmt2 = $db->prepare("UPDATE accounts SET balance = balance + ? WHERE id = ?");
-                $stmt2->bind_param("di", $data['amount'], $acc['id']);
-                $stmt2->execute();
-                
-                $bal_after = $acc['balance'] + $data['amount'];
-                $stmt3 = $db->prepare("INSERT INTO transactions (account_id, type, channel, amount, balance_after, narration, reference, status) VALUES (?, 'credit', 'deposit', ?, ?, 'Card Deposit', ?, 'completed')");
-                $stmt3->bind_param("idds", $acc['id'], $data['amount'], $bal_after, $ref);
-                $stmt3->execute();
-            } else {
-                $stmt3 = $db->prepare("INSERT INTO transactions (account_id, type, channel, amount, balance_after, narration, reference, status) VALUES (?, 'credit', 'deposit', ?, ?, 'Bank Wire Deposit', ?, 'pending')");
-                $bal_after = $acc['balance']; // stays same until confirmed
-                $stmt3->bind_param("idds", $acc['id'], $data['amount'], $bal_after, $ref);
-                $stmt3->execute();
-            }
+            $bal_after = $acc['balance']; // Stays same until approved by admin
+            $narration = ($data['method'] === 'card') ? 'Card Deposit (Pending Approval)' : 'Crypto/Wire Deposit (Pending Approval)';
+
+            $stmt3 = $db->prepare("INSERT INTO transactions (account_id, type, channel, amount, balance_after, narration, reference, status) VALUES (?, 'credit', 'deposit', ?, ?, ?, ?, 'pending')");
+            $stmt3->bind_param("iddss", $acc['id'], $data['amount'], $bal_after, $narration, $ref);
+            $stmt3->execute();
 
             $db->commit();
-            json_response("success", "Deposit processed");
+            json_response("success", "Deposit initiated and pending admin approval");
         } catch (Exception $e) {
             $db->rollback();
             json_response("error", "Deposit failed");

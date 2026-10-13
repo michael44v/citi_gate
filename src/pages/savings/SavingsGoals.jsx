@@ -7,7 +7,7 @@ import { formatUSD } from '../../utils/formatCurrency';
 const SavingsGoals = () => {
   const navigate = useNavigate();
   const [goals, setGoals] = useState([
-    { id: 1, name: 'Emergency Fund', target: 10000, current: 4500, date: 'Dec 2026' },
+    { id: 1, name: 'Emergency Fund', target: 10000, current: 6500, date: 'Dec 2026' },
     { id: 2, name: 'New Car', target: 25000, current: 8000, date: 'May 2027' },
   ]);
 
